@@ -1,5 +1,8 @@
-﻿using Domain.ValueObjects;
+﻿using Domain.Exceptions;
+using Domain.ValueObjects;
+using Domain.Utils;
 using System.ComponentModel.DataAnnotations.Schema;
+using Domain.Ports;
 
 namespace Domain.Entities
 {
@@ -16,9 +19,24 @@ namespace Domain.Entities
         public string LastName { get; set; }
 
         [Column("email")]
-        public string email { get; set; }
+        public string Email { get; set; }
 
         [Column("identity_document")]
         public IdentityDocument IdentityDocument { get; set; }
+
+
+        private void ValidateState()
+        {
+            if (IdentityDocument == null || IdentityDocument.IdentityNumber.Length <= 3) throw new InvalidIdentityDocument();
+            if (Name == null || LastName == null || Email == null) throw new MissingRequiredInfos();
+            if(!Utils.Utils.ValidateEmail(Email)) throw new InvalidEmail();
+        }
+
+        public async Task Save(IGuestRepository repository)
+        {
+            ValidateState();
+            if (Id == 0) Id = await repository.Create(this);
+            //else await repository.Update(this);
+        }
     }
 }
